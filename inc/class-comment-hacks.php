@@ -26,7 +26,6 @@ class YoastCommentHacks {
 	public function __construct() {
 		$this->options = self::get_options();
 		$this->set_defaults();
-		$this->upgrade();
 
 		// Filter the redirect URL.
 		add_filter( 'comment_post_redirect', array( $this, 'comment_redirect' ), 10, 2 );
@@ -64,7 +63,11 @@ class YoastCommentHacks {
 	 * @return string $url the URL to be redirected to, altered if this was a first time comment.
 	 */
 	public function comment_redirect( $url, $comment ) {
-		$has_approved_comment = get_comments( array( 'author_email' => $comment->comment_author_email, 'number' => 1, 'status' => 'approve' ) );
+		$has_approved_comment = get_comments( array(
+			'author_email' => $comment->comment_author_email,
+			'number'       => 1,
+			'status'       => 'approve',
+		) );
 
 		// If no approved comments have been found, show the thank-you page.
 		if ( empty( $has_approved_comment ) ) {
@@ -94,6 +97,7 @@ class YoastCommentHacks {
 		if ( isset( $options[ $option ] ) ) {
 			return $option;
 		}
+
 		return false;
 	}
 
@@ -116,11 +120,10 @@ class YoastCommentHacks {
 		}
 
 		if ( ! isset( $this->options['version'] ) ) {
-			$this->options['clean_emails'] = true;
-			$this->options['version']      = YOAST_COMMENT_HACKS_VERSION;
+			$this->options['version'] = YOAST_COMMENT_HACKS_VERSION;
 		}
 
-		update_option( YoastCommentHacks::$option_name, $this->options );
+		update_option( self::$option_name, $this->options );
 	}
 
 	/**
@@ -150,9 +153,11 @@ class YoastCommentHacks {
 	 *
 	 * @since 1.0
 	 */
-	public function set_defaults() {
-		$this->options = wp_parse_args( $this->options, self::get_defaults() );
-
-		update_option( YoastCommentHacks::$option_name, $this->options );
+	private function set_defaults() {
+		$defaults = self::get_defaults();
+		if ( ! isset( $this->options['version'] ) || YOAST_COMMENT_HACKS_VERSION > $this->options['version'] ) {
+			$this->options = wp_parse_args( $this->options, $defaults );
+			$this->upgrade();
+		}
 	}
 }
